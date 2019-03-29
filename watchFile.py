@@ -3,12 +3,17 @@ import time
 from watchdog.observers import Observer
 from watchdog.events import *
 import yaml
-from rename import OperationFile
+import operate_file
+from operate_file import OperationFile
 import threading
 import warnings
 warnings.filterwarnings("ignore")
 
 lock = threading.Lock()
+
+
+operate_list = []  # 放入元组（文件路径，操作名）
+fail_list = []
 
 
 class FileEventHandler(FileSystemEventHandler):
@@ -21,29 +26,16 @@ class FileEventHandler(FileSystemEventHandler):
         if event.is_directory:
             print(event.src_path)
         else:
-            self.action(event.src_path, 'rename')
+            if not is_tempfile(event.src_path):
+                operate_list.append((event.src_path, 'rename'))
 
     def on_deleted(self, event):
+        print(event.key)
         if event.is_directory:
             print(event.src_path)
         else:
-            self.action(event.src_path, 'remove')
-
-    @staticmethod
-    def action(src_path, operation):  # operation{remove, rename}
-        prev_dir = os.path.split(src_path)[0]
-        file_name = os.path.split(src_path)[1]
-        string = prev_dir[len(watch_path) + 1:]
-        string_list = string.split('\\')
-        if file_name[0] != '~':  # 忽略临时文件
-            file = OperationFile(prev_dir, file_name, string_list)
-            file.start()
-            try:
-                file.operation(operation)
-            except PermissionError:
-                time.sleep(0.0001)
-            except KeyError:
-                print('不是指定文件')
+            if not is_tempfile(event.src_path):
+                operate_list.append((event.src_path, 'remove'))
 
 
 def add_path():
@@ -70,6 +62,34 @@ def init_path():
     return path
 
 
+def action(src_path, operation):  # operation{remove, rename}
+    prev_dir = os.path.split(src_path)[0]
+    file_name = os.path.split(src_path)[1]
+    string = prev_dir[len(watch_path) + 1:]
+    string_list = string.split('\\')
+    file = OperationFile(prev_dir, file_name, string_list)
+    file.start()
+    try:
+        state = file.operation(operation)
+    except KeyError:
+        print('不是指定文件')
+        return operate_file.FAIL
+    return state
+
+
+def is_tempfile(src_path):
+    return os.path.split(src_path)[1][0] == '~'
+
+
+def list_action():
+    if len(operate_list) > 0:
+        for i in range(len(operate_list)):
+            state = action(operate_list[i][0], operate_list[i][1])
+            if state != operate_file.SUCCESS:
+                fail_list.append(operate_list[i])
+        operate_list.clear()
+
+
 if __name__ == "__main__":
     watch_path = init_path()
     event_handler = FileEventHandler()
@@ -78,6 +98,6 @@ if __name__ == "__main__":
     observer.start()
     while True:
         time.sleep(1)
-
+        list_action()
 
 

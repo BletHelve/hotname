@@ -6,10 +6,10 @@ import docx
 import pythoncom
 import os
 import sys
-import time
 import xlrd
 
 LACK = -1
+FAIL = 0
 SUCCESS = 1
 REPEAT = 2
 
@@ -70,12 +70,13 @@ class OperationFile(Thread):
     def remove(self):
         filename = os.path.splitext(self.__filename)[0]  # 去后缀名
         if filename in self.__file_list:
-            return self.__file_list.remove(filename)
-        return -1
+            self.__file_list.remove(filename)
+            return SUCCESS
+        else:
+            return FAIL
 
     def rename(self):
         print(self.__prev_dir + '\\' + self.__filename, end=' ==> ')
-        time.sleep(0.001)
         print(self.name_match())
         if self.__state == SUCCESS:
             print('文件重命名成功')
@@ -85,13 +86,16 @@ class OperationFile(Thread):
                 print('文件提供的信息，不足以进行重命名')
             elif self.__state == REPEAT:
                 print('将要修改的名称与此文件夹中其他文件名重复')
+        return self.__state
 
     def alt(self):  # 直接根据文件内容进行重命名
         i = self.match_file(self.__prev_dir + '\\' + self.__filename)
         if i != -1:
             print(self.__os_rename(self.__filename, tb[i][ID_INDEX], tb[i][NAME_INDEX]))
+            return SUCCESS
         else:
             print('没有改变关键信息，不需要重命名')
+            return FAIL
 
     def name_match(self):
         i = self.match_str(self.__filename)  # 文件名与个人信息表匹配
