@@ -3,8 +3,8 @@ import time
 from watchdog.observers import Observer
 from watchdog.events import *
 import yaml
-import operate_file
-from operate_file import OperationFile
+import operate
+from operate import OperationFile
 import threading
 import warnings
 warnings.filterwarnings("ignore")
@@ -73,7 +73,7 @@ def action(src_path, operation):  # operation{remove, rename}
         state = file.operation(operation)
     except KeyError:
         print('不是指定文件')
-        return operate_file.FAIL
+        return operate.FAIL
     return state
 
 
@@ -85,7 +85,7 @@ def list_action():
     if len(operate_list) > 0:
         for i in range(len(operate_list)):
             state = action(operate_list[i][0], operate_list[i][1])
-            if state != operate_file.SUCCESS:
+            if state != operate.SUCCESS:
                 fail_list.append(operate_list[i])
         operate_list.clear()
 

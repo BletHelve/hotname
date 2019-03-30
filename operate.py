@@ -6,15 +6,12 @@ import docx
 import pythoncom
 import os
 import sys
-import xlrd
+
 
 LACK = -1
 FAIL = 0
 SUCCESS = 1
 REPEAT = 2
-
-ID_INDEX = 0
-NAME_INDEX = 1
 
 # 打包之后当前路径
 if getattr(sys, 'frozen', None):
@@ -24,39 +21,27 @@ else:
 #
 
 
-def get_tb(excel_path):  # 取得excel里的表格
-    table = []
-    excel_path = os.path.join(basedir, excel_path)
-    sheet = xlrd.open_workbook(excel_path).sheet_by_index(0)
-    row_cnt = sheet.nrows
-    col_names = []
-    for name_cell in sheet.row(0):
-        col_names.append(name_cell.value)  # 放入列名（属性）
-    for row in range(1, row_cnt):
-        stu_row = []
-        for col in range(len(col_names)):
-            cell_type = sheet.cell(row, col).ctype
-            val = sheet.cell_value(row, col)
-            if cell_type == 2:  # type is number
-                val = str(int(val))
-            stu_row.append(val)
-        table.append(stu_row)
-    return table, col_names  # 返回列名，为了适应不同的表，目前可以忽略
-
-
-tb, col_names = get_tb('table.xlsx')
-
-
 class OperationFile(Thread):
-    __file_list, __string_list = [], []
+    __tb = None  # (Table类型)
+    __tags, __tb_tags, __keys = (), (), ()
+    __tb_tag_index = ()  # 表格标签插入标签列表的位置
+    __file_list = []
     __prev_dir, __filename = '', ''
     __state = 0
 
-    def __init__(self, prev_dir, filename, string_list):
+    def __init__(self, prev_dir, filename, tags, table=None, tb_tag_index=None):
         Thread.__init__(self)
         self.__filename = filename
         self.__prev_dir = prev_dir
-        self.__string_list = string_list
+        self.__tags = tags
+        if not table:
+            self.__tb = table.get_tb()
+            self.__tb_tags = table.get_tb_tags()
+            self.__tb_keys = table.get_keys()
+        if not tb_tag_index:
+            self.__tb_tag_index = tb_tag_index
+        else:
+            self.__tb_tag_index = range(table)
 
     def get_file_list(self):
         return self.__file_list
@@ -91,7 +76,7 @@ class OperationFile(Thread):
     def alt(self):  # 直接根据文件内容进行重命名
         i = self.match_file(self.__prev_dir + '\\' + self.__filename)
         if i != -1:
-            print(self.__os_rename(self.__filename, tb[i][ID_INDEX], tb[i][NAME_INDEX]))
+            print(self.__os_rename(self.__filename, self.__tb[i]))
             return SUCCESS
         else:
             print('没有改变关键信息，不需要重命名')
@@ -102,14 +87,18 @@ class OperationFile(Thread):
         if i == -1:  # 没有在文件名中找到姓名和学号，进入word里直接查询
             i = self.match_file(self.__prev_dir + '\\' + self.__filename)
         if i != -1:
-            return self.__os_rename(self.__filename, tb[i][ID_INDEX], tb[i][NAME_INDEX])
+            return self.__os_rename(self.__filename, self.__tb[i])
         else:
             self.__state = LACK
 
-    def __os_rename(self, filename, num, name):
-        new_name = num+name  # 新名称
-        for s in self.__string_list:
-            new_name = new_name+s
+    def __os_rename(self, filename, line):  # line：一行所有信息
+        new_name = ''  # 新名称
+        for i in range(len(self.__tags)):
+            self.__tb_tag_index = []
+            p = self.__tb_tag_index.index(i)
+            if p != -1:
+                new_name += line[p]
+            new_name += self.__tags[i]
         if new_name not in self.__file_list:  # 文件名没有重复
             self.__file_list.append(new_name)
             extension = os.path.splitext(filename)[1]  # 文件后缀名
@@ -147,13 +136,11 @@ class OperationFile(Thread):
             if i != -1:
                 return i
 
-    @staticmethod
-    def match_str(string):  # 名称匹配
-        for i in range(len(tb)):
-            if tb[i][NAME_INDEX] in string:
-                return i
-            if tb[i][ID_INDEX] in string:
-                return i
+    def match_str(self, string):  # 名称匹配
+        for i in range(len(self.__tb)):
+            for j in range(len(self.__keys)):
+                if self.__tb[i][j] in string:
+                    return i
         return -1
 
 
