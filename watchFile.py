@@ -5,15 +5,18 @@ from watchdog.events import *
 import yaml
 import operate
 from operate import OperationFile
+from table import Table
 import threading
 import warnings
+
 warnings.filterwarnings("ignore")
 
 lock = threading.Lock()
 
-
-operate_list = []  # 放入元组（文件路径，操作名）
+operate_list = []  # 放入元组（文件路径，操作名)
 fail_list = []
+folder2table = {}
+folder2tb_tag_index = {}
 
 
 class FileEventHandler(FileSystemEventHandler):
@@ -65,9 +68,11 @@ def init_path():
 def action(src_path, operation):  # operation{remove, rename}
     prev_dir = os.path.split(src_path)[0]
     file_name = os.path.split(src_path)[1]
-    string = prev_dir[len(watch_path) + 1:]
-    string_list = string.split('\\')
-    file = OperationFile(prev_dir, file_name, string_list)
+    # string = prev_dir[len(watch_path) + 1:]
+    # string_list = string.split('\\') 根目录到文件，每级目录名
+    folder = os.path.dirname(src_path)
+    file = OperationFile(prev_dir, file_name, tags, table=folder2table[folder],
+                         tb_tag_index=folder2tb_tag_index[folder])
     file.start()
     try:
         state = file.operation(operation)
@@ -92,6 +97,23 @@ def list_action():
 
 if __name__ == "__main__":
     watch_path = init_path()
+    # folder_path = input('请输入更名文件夹')  # 手动在监控文件夹创建
+    # excel_path = input('请输入对应表格地址')
+    folder_path = 'F:\\test\\java'
+    excel_path = 'F:\\test\\table.xlsx'
+    table = Table(excel_path)
+    folder2table[folder_path] = table
+    print('表格标签：'+str(table.get_tb_tags()))
+    # keys = input('请输入主键，以空格分格').split(' ')
+    keys = '学号 姓名'.split(' ')
+    table.set_keys(keys)
+    # tags = input('请输入标签，以空格分格').split(' ')
+    tags = 'w专转本 1 学号 姓名 Java'.split(' ')
+    tb_tag_index = []
+    for t in range(len(tags)):
+        if tags[t] in table.get_tb_tags():
+            tb_tag_index.append(t)
+    folder2tb_tag_index[folder_path] = tb_tag_index
     event_handler = FileEventHandler()
     observer = Observer()
     observer.schedule(event_handler, watch_path, True)

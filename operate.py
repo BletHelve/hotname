@@ -23,7 +23,7 @@ else:
 
 class OperationFile(Thread):
     __tb = None  # (Table类型)
-    __tags, __tb_tags, __keys = (), (), ()
+    __tags, __tb_tags, __tb_keys = (), (), ()
     __tb_tag_index = ()  # 表格标签插入标签列表的位置
     __file_list = []
     __prev_dir, __filename = '', ''
@@ -34,14 +34,14 @@ class OperationFile(Thread):
         self.__filename = filename
         self.__prev_dir = prev_dir
         self.__tags = tags
-        if not table:
+        if table:
             self.__tb = table.get_tb()
             self.__tb_tags = table.get_tb_tags()
             self.__tb_keys = table.get_keys()
-        if not tb_tag_index:
+        if tb_tag_index:
             self.__tb_tag_index = tb_tag_index
         else:
-            self.__tb_tag_index = range(table)
+            self.__tb_tag_index = range(len(table.get_tb_tags()))
 
     def get_file_list(self):
         return self.__file_list
@@ -94,11 +94,12 @@ class OperationFile(Thread):
     def __os_rename(self, filename, line):  # line：一行所有信息
         new_name = ''  # 新名称
         for i in range(len(self.__tags)):
-            self.__tb_tag_index = []
-            p = self.__tb_tag_index.index(i)
-            if p != -1:
+            try:
+                p = self.__tb_tag_index.index(i)
                 new_name += line[p]
-            new_name += self.__tags[i]
+            except ValueError:  # 未找到i值
+                new_name += self.__tags[i]
+
         if new_name not in self.__file_list:  # 文件名没有重复
             self.__file_list.append(new_name)
             extension = os.path.splitext(filename)[1]  # 文件后缀名
@@ -138,7 +139,7 @@ class OperationFile(Thread):
 
     def match_str(self, string):  # 名称匹配
         for i in range(len(self.__tb)):
-            for j in range(len(self.__keys)):
+            for j in range(len(self.__tb_keys)):
                 if self.__tb[i][j] in string:
                     return i
         return -1

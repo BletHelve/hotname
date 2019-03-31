@@ -38,20 +38,18 @@ class Table:
         return self.__keys
 
     def set_keys(self, keys):
-        keys.sort(cmp=fault_cmp)
+        keys.sort(key=lambda key: fault_weightings(self.__tb[0][self.__tb_tags.index(key)]))
         self.__keys = keys
 
 
-def fault_cmp(key1, key2):  # 比较人类输入出错的可能性
-    fault1, fault2 = 0, 0
-    for c1 in key1:
-        fault1 += what_char(c1)
-    for c2 in key2:
-        fault2 += what_char(c2)
-    return fault1 - fault2
+def fault_weightings(string):  # 获取输出错误的
+    weighting = 0
+    for c in string:
+        weighting += char_fault(c)
+    return weighting
 
 
-def what_char(char):
+def char_fault(char):
     if u'\u4e00' <= char <= u'\u9fff':
         return CHINESE
     elif char.isdigit():
