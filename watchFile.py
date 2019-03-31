@@ -97,18 +97,13 @@ def list_action():
 
 if __name__ == "__main__":
     watch_path = init_path()
-    # folder_path = input('请输入更名文件夹')  # 手动在监控文件夹创建
-    # excel_path = input('请输入对应表格地址')
-    folder_path = 'F:\\test\\java'
-    excel_path = 'F:\\test\\table.xlsx'
+    folder_path = input('请输入更名文件夹')  # 手动在监控文件夹创建
+    excel_path = input('请输入对应表格地址')
     table = Table(excel_path)
     folder2table[folder_path] = table
-    print('表格标签：'+str(table.get_tb_tags()))
-    # keys = input('请输入主键，以空格分格').split(' ')
-    keys = '学号 姓名'.split(' ')
+    keys = input('请输入主键，以空格分格').split(' ')
     table.set_keys(keys)
-    # tags = input('请输入标签，以空格分格').split(' ')
-    tags = 'w专转本 1 学号 姓名 Java'.split(' ')
+    tags = input('请输入标签，以空格分格').split(' ')
     tb_tag_index = []
     for t in range(len(tags)):
         if tags[t] in table.get_tb_tags():
