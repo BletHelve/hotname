@@ -1,13 +1,18 @@
-
+import sys
 import time
 from watchdog.observers import Observer
 from watchdog.events import *
 import yaml
-import operate
-from operate import OperationFile
-from table import Table
 import threading
 import warnings
+from PyQt5 import QtWidgets, uic,QtCore,QtGui
+
+
+from model import operate
+from model.operate import OperationFile
+from model.table import Table
+from view.main_interactive import *
+from view.main_window import *
 
 warnings.filterwarnings("ignore")
 
@@ -17,6 +22,8 @@ operate_list = []  # 放入元组（文件路径，操作名)
 fail_list = []
 folder2table = {}
 folder2tb_tag_index = {}
+
+
 
 
 class FileEventHandler(FileSystemEventHandler):
@@ -96,24 +103,37 @@ def list_action():
 
 
 if __name__ == "__main__":
-    watch_path = init_path()
-    folder_path = input('请输入更名文件夹')  # 手动在监控文件夹创建
-    excel_path = input('请输入对应表格地址')
-    table = Table(excel_path)
-    folder2table[folder_path] = table
-    keys = input('请输入主键，以空格分格').split(' ')
-    table.set_keys(keys)
-    tags = input('请输入标签，以空格分格').split(' ')
-    tb_tag_index = []
-    for t in range(len(tags)):
-        if tags[t] in table.get_tb_tags():
-            tb_tag_index.append(t)
-    folder2tb_tag_index[folder_path] = tb_tag_index
-    event_handler = FileEventHandler()
-    observer = Observer()
-    observer.schedule(event_handler, watch_path, True)
-    observer.start()
-    while True:
-        time.sleep(1)
-        list_action()
+
+    # watch_path = init_path()
+    # folder_path = input('请输入更名文件夹')  # 手动在监控文件夹创建
+
+    # folder2table[folder_path] = table
+    # keys = input('请输入主键，以空格分格').split(' ')
+    # table.set_keys(keys)
+    # tags = input('请输入标签，以空格分格').split(' ')
+
+    # tb_tag_index = []
+    # for t in range(len(tags)):
+    #      if tags[t] in table.get_tb_tags():
+    #          tb_tag_index.append(t)
+    # folder2tb_tag_index[folder_path] = tb_tag_index
+
+    app = QtWidgets.QApplication(sys.argv)  # 建立application对象
+    window = MainInteractive()  # 建立窗体对象
+
+
+    # self.add_table_btn.clicked.connect()
+    # self.add_format_btn.clicked.connect()
+    window.show()  # 显示窗体
+
+    sys.exit(app.exec())  # 运行程序
+
+    # event_handler = FileEventHandler()
+    # observer = Observer()
+    # observer.schedule(event_handler, watch_path, True)
+    # observer.start()
+    # while True:
+    #     time.sleep(1)
+    #     list_action()
+
 
