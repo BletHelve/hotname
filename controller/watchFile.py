@@ -20,10 +20,7 @@ lock = threading.Lock()
 
 operate_list = []  # 放入元组（文件路径，操作名)
 fail_list = []
-folder2table = {}
-folder2tb_tag_index = {}
-
-
+folder2format_table = {}
 
 
 class FileEventHandler(FileSystemEventHandler):
@@ -48,38 +45,14 @@ class FileEventHandler(FileSystemEventHandler):
                 operate_list.append((event.src_path, 'remove'))
 
 
-def add_path():
-    while True:
-        path = input('请输入文件地址：')
-        if os.path.isdir(path):
-            break
-        else:
-            print('输入的地址不存在，请重新输入')
-    config = open('config.yaml', 'w', encoding='utf-8')
-    content = {'watch_path': path}
-    yaml.dump(content, config)
-    config.close()
-    return path
-
-
-def init_path():
-    config = open('config.yaml', 'r', encoding='utf-8')
-    res = yaml.load(config)
-    config.close()
-    path = res['watch_path']
-    if path == 'without':
-        return add_path()
-    return path
-
-
 def action(src_path, operation):  # operation{remove, rename}
     prev_dir = os.path.split(src_path)[0]
     file_name = os.path.split(src_path)[1]
     # string = prev_dir[len(watch_path) + 1:]
     # string_list = string.split('\\') 根目录到文件，每级目录名
-    folder = os.path.dirname(src_path)
-    file = OperationFile(prev_dir, file_name, tags, table=folder2table[folder],
-                         tb_tag_index=folder2tb_tag_index[folder])
+    folder = os.path.split(prev_dir)[1]
+    file = OperationFile(prev_dir, file_name, folder2format_table[folder][0], table=folder2format_table[folder][1])
+
     file.start()
     try:
         state = file.operation(operation)
@@ -103,37 +76,16 @@ def list_action():
 
 
 if __name__ == "__main__":
-
-    # watch_path = init_path()
-    # folder_path = input('请输入更名文件夹')  # 手动在监控文件夹创建
-
-    # folder2table[folder_path] = table
-    # keys = input('请输入主键，以空格分格').split(' ')
-    # table.set_keys(keys)
-    # tags = input('请输入标签，以空格分格').split(' ')
-
-    # tb_tag_index = []
-    # for t in range(len(tags)):
-    #      if tags[t] in table.get_tb_tags():
-    #          tb_tag_index.append(t)
-    # folder2tb_tag_index[folder_path] = tb_tag_index
-
-    app = QtWidgets.QApplication(sys.argv)  # 建立application对象
-    window = MainInteractive()  # 建立窗体对象
-
-
-    # self.add_table_btn.clicked.connect()
-    # self.add_format_btn.clicked.connect()
-    window.show()  # 显示窗体
-
-    sys.exit(app.exec())  # 运行程序
-
-    # event_handler = FileEventHandler()
-    # observer = Observer()
-    # observer.schedule(event_handler, watch_path, True)
-    # observer.start()
-    # while True:
-    #     time.sleep(1)
-    #     list_action()
-
+    watch_path = 'F:\\test'
+    table = Table('F:\\table.xlsx')
+    table.set_keys(['姓名', '学号'])
+    folder2format_table['java'] = ('w1专转本%学号%%姓名%java', table)
+    event_handler = FileEventHandler()
+    observer = Observer()
+    observer.schedule(event_handler, watch_path, True)
+    observer.start()
+    while True:
+        time.sleep(1)
+        list_action()
+    pass
 
