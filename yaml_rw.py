@@ -1,10 +1,8 @@
 import yaml
 
-operation = {}
 
-
-def read():
-    config = open('config.yaml', 'r', encoding='utf-8')
+def read(yaml_file='config.yaml'):
+    config = open(yaml_file, 'r', encoding='utf-8')
     content = yaml.load(config)
     config.close()
     return content
@@ -12,7 +10,9 @@ def read():
 
 def add(collection, value):
     if type(collection) == list:
-        collection.append(value)
+        if type(value) != list:
+            value = [value]
+        collection += value
     elif type(collection) == dict:
         if collection:
             collection = {**collection, **value}
@@ -29,9 +29,9 @@ def delete(collection, value):
     return collection
 
 
-def write(key, value, opera='add'):  # 在yaml文件里写入list,要删除操作，参数opera = del
-    content = read()
-    config = open('config.yaml', 'w', encoding='utf-8')
+def write(key, value, opera='add', yaml_file='config.yaml'):  # 在yaml文件里写入list,要删除操作，参数opera = del
+    content = read(yaml_file)
+    config = open(yaml_file, 'w', encoding='utf-8')
     if opera == 'add':
         content[key] = add(content[key], value)
     elif opera == 'del':

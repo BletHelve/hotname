@@ -7,8 +7,6 @@ import pythoncom
 import os
 import sys
 
-from model.table import Table
-
 LACK = -1
 FAIL = 0
 SUCCESS = 1
@@ -23,17 +21,14 @@ else:
 
 
 class OperationFile(Thread):
-    table = None  # (Table类型)
     __file_list = []
-    __prev_dir, __filename = '', ''
-    __state = 0
-    rename_format = ''
 
     def __init__(self, prev_dir, filename, rename_format, table=None):
         Thread.__init__(self)
-        self.__filename = filename
-        self.__prev_dir = prev_dir
+        self.filename = filename
+        self.prev_dir = prev_dir
         self.rename_format = rename_format
+        self.state = FAIL
         if table:
             self.table = table
 
@@ -47,7 +42,7 @@ class OperationFile(Thread):
                 }[operation]()
 
     def remove(self):
-        filename = os.path.splitext(self.__filename)[0]  # 去后缀名
+        filename = os.path.splitext(self.filename)[0]  # 去后缀名
         if filename in self.__file_list:
             self.__file_list.remove(filename)
             return SUCCESS
@@ -55,7 +50,7 @@ class OperationFile(Thread):
             return FAIL
 
     def rename(self):
-        print(self.__prev_dir + '\\' + self.__filename, end=' ==> ')
+        print(self.prev_dir + '\\' + self.filename, end=' ==> ')
         print(self.name_match())
         if self.__state == SUCCESS:
             print('文件重命名成功')
@@ -68,22 +63,22 @@ class OperationFile(Thread):
         return self.__state
 
     def alt(self):  # 直接根据文件内容进行重命名
-        i = self.match_file(self.__prev_dir + '\\' + self.__filename)
+        i = self.match_file(self.prev_dir + '\\' + self.filename)
         if i != -1:
-            print(self.__os_rename(self.__filename, self.table.get_tb()[i]))
+            print(self.__os_rename(self.filename, self.table.get_tb()[i]))
             return SUCCESS
         else:
             print('没有改变关键信息，不需要重命名')
             return FAIL
 
     def name_match(self):
-        i = self.match_str(self.__filename)  # 文件名与个人信息表匹配
+        i = self.match_str(self.filename)  # 文件名与个人信息表匹配
         if i == -1:  # 没有在文件名中找到姓名和学号，进入word里直接查询
-            i = self.match_file(self.__prev_dir + '\\' + self.__filename)
+            i = self.match_file(self.prev_dir + '\\' + self.filename)
         if i != -1:
-            return self.__os_rename(self.__filename, self.table.get_tb()[i])
+            return self.__os_rename(self.filename, self.table.get_tb()[i])
         else:
-            self.__state = LACK
+            self.state = LACK
 
     def __os_rename(self, filename, line):  # line：一行所有信息
         new_name = self.rename_format  # 新名称
@@ -93,8 +88,8 @@ class OperationFile(Thread):
         if new_name not in self.__file_list:  # 文件名没有重复
             self.__file_list.append(new_name)
             extension = os.path.splitext(filename)[1]  # 文件后缀名
-            os.renames(self.__prev_dir + '\\' + filename,
-                       self.__prev_dir + '\\' + new_name + extension)
+            os.renames(self.prev_dir + '\\' + filename,
+                       self.prev_dir + '\\' + new_name + extension)
             self.__state = SUCCESS
         else:
             self.__state = REPEAT
@@ -108,6 +103,7 @@ class OperationFile(Thread):
 
     def __match_doc(self, doc_path):
         # todo 这个是io操作，在这里实现切换
+        doc_path = basedir+'\\'+doc_path
         pythoncom.CoInitialize()
         word = wc.Dispatch('Word.Application')
         doc = word.Documents.Open(doc_path)  # 目标路径下的文件
@@ -128,8 +124,9 @@ class OperationFile(Thread):
                 return i
 
     def match_str(self, string):  # 名称匹配
-        for i in range(len(self.table.get_tb())):
+        tb = self.table.get_tb()
+        for i in range(len(tb)):
             for j in self.table.get_key_indexes():
-                if self.table.get_tb()[i][j] in string:
+                if tb[i][j] in string:
                     return i
         return -1

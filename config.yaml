@@ -1,1 +1,4 @@
-watch_path: F:\test
+excel:
+- "\u65E0"
+format: []
+rename: {}
